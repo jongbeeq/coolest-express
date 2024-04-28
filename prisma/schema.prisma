@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String?   @unique
+  mobile    Int?      @unique
+  password  String
+  address   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  Cart      Cart[]    @relation("cartOfUser")
+}
+
+model Admin {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model Product {
+  id               Int               @id @default(autoincrement())
+  title            String            @unique
+  description      String
+  categoryId       Int
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime?         @updatedAt
+  ProductOptionals ProductOptional[] @relation("optionalOfProduct")
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  title     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model ProductOptional {
+  id        Int       @id @default(autoincrement())
+  title     String    @unique
+  price     Int
+  balance   Int
+  image     Int
+  productId Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  product   Product   @relation("optionalOfProduct", fields: [productId], references: [id])
+}
+
+model Cart {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  totalPrice     Int
+  user           User      @relation("cartOfUser", fields: [userId], references: [id])
+  createPayment  DateTime?
+  successPayment DateTime?
+}
