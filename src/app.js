@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const cors = require('cors')
 
 const rateLimitMiddleware = require('./middlewares/rate-limit')
+const authRoute = require('./routes/auth-route')
 
 const app = express()
 
@@ -12,14 +13,14 @@ app.use(morgan('dev'))
 app.use(rateLimitMiddleware)
 app.use(express.json())
 
+app.use('/auth', authRoute)
+
 app.use((req, res, next) => {
-    console.log(req.body)
     res.status(404).json({ message: 'path not found' })
 })
 
 app.use((err, req, res, next) => {
-    console.log(err)
-    res.status(500).json({ message: err.message })
+    res.status(err.statusCode || 500).json({ message: err.message })
 })
 
 const PORT = process.env.PORT || 8000

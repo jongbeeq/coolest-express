@@ -1,0 +1,1 @@
+exports.errorEmailIsExistMessage = 'This email is registered'
