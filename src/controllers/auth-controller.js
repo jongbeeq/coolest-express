@@ -1,3 +1,6 @@
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+
 const { errorEmailIsExistMessage } = require('../config/constant')
 const prisma = require('../models/prisma')
 const createError = require('../utils/create-error')
@@ -19,10 +22,25 @@ exports.register = async (req, res, next) => {
             return next(createError(errorEmailIsExistMessage, 400))
         }
 
+        value.password = await bcrypt.hash(value.password, 12)
 
-        console.log(isExistEmail)
+        const user = await prisma.user.create({
+            data: { ...value }
+        })
 
+        const payload = { id: user.id }
+
+        const accessToken = await jwt.sign(
+            payload,
+            process.env.JWT_SECRET_KEY,
+            { expiresIn: process.env.JWT_EXPIRE }
+        )
+
+        const respond = { accessToken: accessToken }
+
+        res.status(200).json(respond)
     } catch (err) {
+        console.log(err)
         next(err)
     }
 }
