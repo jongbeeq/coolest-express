@@ -8,6 +8,7 @@ const { registerSchema } = require('../validators/auth-validator')
 
 exports.register = async (req, res, next) => {
     try {
+        console.log(req.body)
         const { value, error } = registerSchema.validate(req.body, { abortEarly: false })
         if (error) {
             return next(createError(error?.message, 400))
@@ -25,12 +26,12 @@ exports.register = async (req, res, next) => {
         value.password = await bcrypt.hash(value.password, 12)
 
         const user = await prisma.user.create({
-            data: { ...value }
+            data: { ...value, mobile: +value.mobile }
         })
 
         const payload = { id: user.id }
 
-        const accessToken = await jwt.sign(
+        const accessToken = jwt.sign(
             payload,
             process.env.JWT_SECRET_KEY,
             { expiresIn: process.env.JWT_EXPIRE }
@@ -40,7 +41,6 @@ exports.register = async (req, res, next) => {
 
         res.status(200).json(respond)
     } catch (err) {
-        console.log(err)
         next(err)
     }
 }

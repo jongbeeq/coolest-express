@@ -12,7 +12,7 @@ model User {
   firstName String
   lastName  String
   email     String    @unique
-  mobile    Int?
+  mobile    Int
   password  String
   address   String
   createdAt DateTime  @default(now())
