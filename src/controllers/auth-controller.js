@@ -20,7 +20,7 @@ exports.register = async (req, res, next) => {
         })
 
         if (isExistEmail) {
-            return next(createError(errorEmailIsExistMessage, 400))
+            return next(createError(errorEmailIsExistMessage, 400, 'email'))
         }
 
         value.password = await bcrypt.hash(value.password, 12)
@@ -37,7 +37,8 @@ exports.register = async (req, res, next) => {
             { expiresIn: process.env.JWT_EXPIRE }
         )
 
-        const respond = { accessToken: accessToken }
+        delete user.password
+        const respond = { accessToken, user }
 
         res.status(200).json(respond)
     } catch (err) {

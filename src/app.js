@@ -20,7 +20,12 @@ app.use((req, res, next) => {
 })
 
 app.use((err, req, res, next) => {
-    res.status(err.statusCode || 500).json({ message: err.message })
+
+    const errorData = { message: err.message }
+    if (err.atColumn) {
+        errorData.atColumn = err.atColumn
+    }
+    res.status(err.statusCode || 500).json(errorData)
 })
 
 const PORT = process.env.PORT || 8000
