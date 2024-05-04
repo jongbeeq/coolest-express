@@ -20,7 +20,6 @@ app.use((req, res, next) => {
 })
 
 app.use((err, req, res, next) => {
-
     const errorData = { message: err.message }
     if (err.atColumn) {
         errorData.atColumn = err.atColumn

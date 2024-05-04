@@ -26,7 +26,7 @@ exports.register = async (req, res, next) => {
         value.password = await bcrypt.hash(value.password, 12)
 
         const user = await prisma.user.create({
-            data: { ...value, mobile: +value.mobile }
+            data: { ...value, mobile: value.mobile }
         })
 
         const payload = { id: user.id }
