@@ -12,7 +12,7 @@ body { email?: String , mobile?: Number , password: String }
 400 { message: String }
 500 { message: String }
 
-GET USER
+GET ACCOUNT
 GET /auth/
 headers {authorization: String}
 201 { accsessToken: String }

@@ -57,7 +57,7 @@ exports.login = async (req, res, next) => {
         }
 
         const loginData = email ? { email } : { mobile }
-        console.log(loginData)
+        console.log('logindata ', loginData)
         const user = await prisma.user.findUnique({
             where: loginData
         })
@@ -65,13 +65,13 @@ exports.login = async (req, res, next) => {
         if (!user) {
             return next(credentialError)
         }
-        console.log(user)
 
         const rightPassword = await bcrypt.compare(password, user.password)
 
         console.log(rightPassword)
 
         if (!rightPassword) {
+            console.log(rightPassword)
             return next(credentialError)
         }
 
@@ -87,4 +87,9 @@ exports.login = async (req, res, next) => {
     } catch (error) {
         next(error)
     }
+}
+
+exports.getMe = (req, res) => {
+    const respond = { user: req.user }
+    res.status(200).json(respond)
 }
