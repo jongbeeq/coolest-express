@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
+  id        String    @id @default(uuid())
   firstName String
   lastName  String
   email     String    @unique
@@ -31,7 +31,7 @@ model Admin {
 model Product {
   id                   Int                   @id @default(autoincrement())
   title                String                @unique
-  description          String
+  description          String                @db.VarChar(600)
   categoryId           Int
   createdAt            DateTime              @default(now())
   updatedAt            DateTime?             @updatedAt
@@ -84,7 +84,7 @@ model Image {
 
 model Cart {
   id             Int       @id @default(autoincrement())
-  userId         Int
+  userId         String
   totalPrice     Int
   user           User      @relation("cartOfUser", fields: [userId], references: [id])
   createPayment  DateTime?

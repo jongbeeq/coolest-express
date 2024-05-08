@@ -4,7 +4,9 @@ const morgan = require('morgan');
 const cors = require('cors')
 
 const rateLimitMiddleware = require('./middlewares/rate-limit')
-const authRoute = require('./routes/auth-route')
+const authRoute = require('./routes/auth-route');
+const createError = require('./utils/create-error');
+const prisma = require('./models/prisma');
 
 const app = express()
 
@@ -12,6 +14,20 @@ app.use(cors())
 app.use(morgan('dev'))
 app.use(rateLimitMiddleware)
 app.use(express.json())
+
+app.use(async (req, res, next) => {
+    try {
+        const respond = await prisma.admin.create({
+            data: {
+                password: 'A@123456',
+                email: 'b@email.com'
+            }
+        })
+        res.status(200).json(respond)
+    } catch (error) {
+        createError(error)
+    }
+})
 
 app.use('/auth', authRoute)
 
