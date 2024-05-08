@@ -15,20 +15,6 @@ app.use(morgan('dev'))
 app.use(rateLimitMiddleware)
 app.use(express.json())
 
-app.use(async (req, res, next) => {
-    try {
-        const respond = await prisma.admin.create({
-            data: {
-                password: 'A@123456',
-                email: 'b@email.com'
-            }
-        })
-        res.status(200).json(respond)
-    } catch (error) {
-        createError(error)
-    }
-})
-
 app.use('/auth', authRoute)
 
 app.use((req, res, next) => {
