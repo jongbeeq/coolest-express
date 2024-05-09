@@ -40,13 +40,25 @@ model Product {
   updatedAt            DateTime?             @updatedAt
   images               Image[]               @relation("productImage")
   productOptionalTypes ProductOptionalType[] @relation("productOptionalType")
+  productCategorys     ProductCategory[]     @relation("productCategory")
 }
 
 model Category {
-  id        Int       @id @default(autoincrement())
-  title     String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  id               Int               @id @default(autoincrement())
+  title            String            @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime?         @updatedAt
+  categoryProducts ProductCategory[] @relation("categoryProduct")
+}
+
+model ProductCategory {
+  id         Int       @id @default(autoincrement())
+  productId  Int
+  categoryId Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime? @updatedAt
+  product    Product   @relation("productCategory", fields: [productId], references: [id])
+  category   Category  @relation("categoryProduct", fields: [categoryId], references: [id])
 }
 
 model ProductOptionalType {
