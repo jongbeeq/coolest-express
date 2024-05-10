@@ -4,12 +4,14 @@ const jwt = require('jsonwebtoken')
 const { errorEmailIsExistMessage, errorLoginMessage } = require('../config/constant')
 const prisma = require('../models/prisma')
 const createError = require('../utils/create-error')
-const { registerSchema, loginSchema } = require('../validators/auth-validator')
+const { registerUserSchema, registerAdminSchema, loginSchema } = require('../validators/auth-validator')
 
-exports.register = async (req, res, next) => {
+exports.registerUser = async (req, res, next) => {
     try {
         console.log(req.body)
-        const { value, error } = registerSchema.validate(req.body, { abortEarly: false })
+        const { value, error } = registerUserSchema.validate(req.body, { abortEarly: false })
+
+        console.log("a.sadasd", value)
         if (error) {
             return next(createError(error?.message, 400))
         }
@@ -26,7 +28,7 @@ exports.register = async (req, res, next) => {
         value.password = await bcrypt.hash(value.password, 12)
 
         const user = await prisma.user.create({
-            data: { ...value, mobile: value.mobile }
+            data: { ...value }
         })
 
         const payload = { id: user.id }
@@ -39,6 +41,48 @@ exports.register = async (req, res, next) => {
 
         delete user.password
         const respond = { accessToken, user }
+
+        res.status(200).json(respond)
+    } catch (err) {
+        next(err)
+    }
+}
+
+exports.registerAdmin = async (req, res, next) => {
+    try {
+        console.log('welcome regAdmin')
+        console.log(req.body)
+        const { value, error } = registerAdminSchema.validate(req.body, { abortEarly: false })
+        if (error) {
+            return next(createError(error?.message, 400))
+        }
+        const isExistEmail = await prisma.admin.findUnique({
+            where: {
+                email: value.email
+            }
+        })
+
+        if (isExistEmail) {
+            return next(createError(errorEmailIsExistMessage, 400, 'email'))
+        }
+
+        value.password = await bcrypt.hash(value.password, 12)
+
+        const admin = await prisma.admin.create({
+            data: { ...value }
+        })
+
+        const payload = { id: admin.id }
+
+        const accessToken = jwt.sign(
+            payload,
+            process.env.JWT_SECRET_KEY,
+            { expiresIn: process.env.JWT_EXPIRE }
+        )
+
+        delete admin.password
+        admin.isAdmin = true
+        const respond = { accessToken, admin }
 
         res.status(200).json(respond)
     } catch (err) {

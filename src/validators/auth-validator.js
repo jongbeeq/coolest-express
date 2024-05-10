@@ -1,6 +1,6 @@
 const Joi = require('joi')
 
-exports.registerSchema = Joi.object({
+exports.registerUserSchema = Joi.object({
     firstName: Joi.string().trim().required(),
     lastName: Joi.string().trim().required(),
     email: Joi.string().email().required(),
@@ -8,6 +8,12 @@ exports.registerSchema = Joi.object({
     password: Joi.string().pattern(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-])[a-zA-Z0-9#?!@$%^&*-]{6,}$/).trim().required(),
     confirmPassword: Joi.string().valid(Joi.ref('password')).trim().required().strip(),
     address: Joi.string().trim().required(),
+})
+
+exports.registerAdminSchema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().pattern(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-])[a-zA-Z0-9#?!@$%^&*-]{6,}$/).trim().required(),
+    confirmPassword: Joi.string().valid(Joi.ref('password')).trim().required().strip(),
 })
 
 exports.loginSchema = Joi.object({
