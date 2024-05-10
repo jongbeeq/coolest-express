@@ -58,31 +58,46 @@ exports.login = async (req, res, next) => {
 
         const loginData = email ? { email } : { mobile }
         console.log('logindata ', loginData)
-        const user = await prisma.user.findUnique({
+
+        const admin = await prisma.admin.findUnique({
             where: loginData
         })
 
-        if (!user) {
-            return next(credentialError)
+        let account = admin
+
+        if (!admin) {
+            const user = await prisma.user.findUnique({
+                where: loginData
+            })
+
+            console.log(user)
+
+            if (!user) {
+                return next(credentialError)
+            }
+
+            account = user
         }
 
-        const rightPassword = await bcrypt.compare(password, user.password)
+        console.log(account)
 
-        console.log(rightPassword)
+        const rightPassword = await bcrypt.compare(password, account.password)
+
+        console.log('rightPassword', rightPassword)
 
         if (!rightPassword) {
             console.log(rightPassword)
             return next(credentialError)
         }
 
-        delete user.password
+        delete account.password
 
-        console.log(user)
-        const payload = { id: user.id }
+        console.log(account)
+        const payload = { id: account.id }
         console.log(payload)
         const accessToken = jwt.sign(payload, process.env.JWT_SECRET_KEY || 'asdbsadbashdbsajd', { expiresIn: process.env.JWT_EXPIRE })
         console.log(accessToken)
-        const respond = { user, accessToken }
+        const respond = { account, accessToken }
         res.status(200).json(respond)
     } catch (error) {
         next(error)
