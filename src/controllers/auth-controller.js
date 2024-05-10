@@ -90,6 +90,6 @@ exports.login = async (req, res, next) => {
 }
 
 exports.getMe = (req, res) => {
-    const respond = { user: req.user }
+    const respond = { account: req.account }
     res.status(200).json(respond)
 }

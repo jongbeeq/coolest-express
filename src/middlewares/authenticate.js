@@ -16,6 +16,19 @@ module.exports = async (req, res, next) => {
 
         const payload = jwt.verify(token, process.env.JWT_SECRET_KEY || 'sjkbdsakdbaskjdbaskb')
 
+        const admin = await prisma.admin.findUnique({
+            where: {
+                id: payload.id
+            }
+        })
+
+        // authenAdmin
+        if (admin) {
+            delete admin.password
+            req.account = admin
+            return next()
+        }
+
         const user = await prisma.user.findUnique({
             where: {
                 id: payload.id
