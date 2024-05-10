@@ -25,6 +25,7 @@ module.exports = async (req, res, next) => {
         // authenAdmin
         if (admin) {
             delete admin.password
+            admin.isAdmin = true
             req.account = admin
             return next()
         }

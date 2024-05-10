@@ -107,6 +107,7 @@ exports.login = async (req, res, next) => {
             where: loginData
         })
 
+        admin.isAdmin = true
         let account = admin
 
         if (!admin) {
