@@ -107,7 +107,7 @@ exports.login = async (req, res, next) => {
             where: loginData
         })
 
-        admin.isAdmin = true
+        if (admin) admin.isAdmin = true
         let account = admin
 
         if (!admin) {
@@ -145,6 +145,7 @@ exports.login = async (req, res, next) => {
         const respond = { account, accessToken }
         res.status(200).json(respond)
     } catch (error) {
+        console.log(error)
         next(error)
     }
 }
