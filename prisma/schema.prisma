@@ -77,11 +77,11 @@ model ProductOptionalItem {
   title                 String
   price                 Int?
   balance               Int?
-  productOptionalTypeId Int?
+  productOptionalTypeId Int
   createdAt             DateTime              @default(now())
   updatedAt             DateTime?             @updatedAt
   images                Image[]               @relation("optionItemImage")
-  productOptionalType   ProductOptionalType?  @relation("optionalTypeItem", fields: [productOptionalTypeId], references: [id])
+  productOptionalType   ProductOptionalType   @relation("optionalTypeItem", fields: [productOptionalTypeId], references: [id])
   primaryItem           CombineOptionalItem[] @relation("primaryItem")
   compoundItem          CombineOptionalItem[] @relation("compoundItem")
 }

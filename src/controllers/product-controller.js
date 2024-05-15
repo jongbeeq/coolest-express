@@ -40,7 +40,7 @@ exports.createProduct = async (req, res, next) => {
         // })
         // console.log(req.body[`${req.body.types[0]}/items`])
 
-        // const itemData = genDBManyData(req.body[`${req.body.types[0]}/items`],)
+        const itemData = genDBManyData(req.body[`${req.body.types[0]}/items`], "title")
 
         const productOptional = await prisma.productOptionalType.create({
             data: {
@@ -48,7 +48,7 @@ exports.createProduct = async (req, res, next) => {
                 productId: product.id,
                 productOptionalItems: {
                     createMany: {
-                        data: req.body[`${req.body.types[0]}/items`]
+                        data: itemData
                     }
                 }
             },
