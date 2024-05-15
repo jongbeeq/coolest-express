@@ -31,11 +31,11 @@ model Admin {
 model Product {
   id                   Int                   @id @default(autoincrement())
   title                String                @unique
-  description          String                @db.VarChar(600)
+  description          String?               @db.VarChar(600)
   balance              Int
   minPrice             Int
-  maxPrice             Int
-  categoryId           Int
+  maxPrice             Int?
+  categoryId           Int?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime?             @updatedAt
   images               Image[]               @relation("productImage")
