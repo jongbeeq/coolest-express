@@ -18,13 +18,14 @@ exports.createProduct = async (req, res, next) => {
             data: {
                 title: req.body.title,
                 description: req.body.description,
-                balance: req.body.balance,
-                minPrice: req.body.price,
-                maxPrice: req.body.price,
+                balance: +req.body.balance,
+                minPrice: +req.body.price,
+                // maxPrice: req.body.price,
             }
         })
         console.log(product)
-        res.status(200).json(product)
+        const respond = { product }
+        res.status(200).json(respond)
     } catch (error) {
         next(createError(error))
         console.log('error asdasads ', error)

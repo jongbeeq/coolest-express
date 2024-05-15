@@ -95,14 +95,14 @@ model CombineOptionalItem {
 }
 
 model Image {
-  id                    Int                 @id @default(autoincrement())
+  id                    Int                  @id @default(autoincrement())
   src                   String
   productId             Int
-  productOptionalItemId Int
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime?           @updatedAt
-  productOptionalItem   ProductOptionalItem @relation("optionItemImage", fields: [productOptionalItemId], references: [id])
-  product               Product             @relation("productImage", fields: [productId], references: [id])
+  productOptionalItemId Int?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime?            @updatedAt
+  productOptionalItem   ProductOptionalItem? @relation("optionItemImage", fields: [productOptionalItemId], references: [id])
+  product               Product              @relation("productImage", fields: [productId], references: [id])
 }
 
 model Cart {
