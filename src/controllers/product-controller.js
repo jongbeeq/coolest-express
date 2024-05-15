@@ -8,17 +8,42 @@ exports.createProduct = async (req, res, next) => {
         console.log(req.body)
         console.log(req.files)
         const uploadingFiles = req.files.map(file => {
-            const type = file.mimetype.split('/')[0]
-            return uploadToCloud(file.path, type)
+            const uploadFile = async () => {
+                const type = file.mimetype.split('/')[0]
+                return { [file.fieldname]: await uploadToCloud(file.path, type) }
+            }
+            return uploadFile()
         })
 
-        const genDBManyData = (data, col) => {
-            return data.map(src => {
-                return { productId: product.id, [col]: src }
+        const genDBManyData = (datas, col, fixField) => {
+            if (!Array.isArray(datas)) {
+                return { ...fixField, [col]: datas }
+            }
+
+            return datas.map(data => {
+                return { ...fixField, [col]: data }
             })
         }
 
-        // const filesOnCloud = await Promise.all(uploadingFiles)
+        const filesOnCloud = await Promise.all(uploadingFiles)
+
+        console.log(filesOnCloud)
+
+        let objectFile = {}
+        for (let item of filesOnCloud) {
+            for (let key in item) {
+                if (objectFile[key]) {
+                    objectFile[key] = [...objectFile[key], item[key]]
+
+                } else {
+                    objectFile[key] = [item[key]]
+                }
+            }
+        }
+
+        console.log(objectFile)
+
+        const generalImages = genDBManyData(objectFile.image, 'src')
 
         const product = await prisma.product.create({
             data: {
@@ -26,53 +51,75 @@ exports.createProduct = async (req, res, next) => {
                 description: req.body.description,
                 balance: +req.body.balance,
                 minPrice: +req.body.price,
-            },
-        })
-
-        req.body.types.map(type => {
-            return
-        })
-
-        const typeData = genDBManyData(req.body.types, 'title')
-
-        // const productType = await prisma.productOptionalType.createMany({
-        //     data: typeData
-        // })
-        // console.log(req.body[`${req.body.types[0]}/items`])
-
-        const itemData = genDBManyData(req.body[`${req.body.types[0]}/items`], "title")
-
-        const productOptional = await prisma.productOptionalType.create({
-            data: {
-                title: req.body.types[0],
-                productId: product.id,
-                productOptionalItems: {
+                images: {
                     createMany: {
-                        data: itemData
+                        data: generalImages
                     }
                 }
             },
-
         })
 
 
-        // console.log(productType)
-        console.log(product)
 
-        // const filesProduct = filesOnCloud.map(src => {
-        //     return { productId: product.id, src: src }
-        // })
+        const productOptionalsCreating = req.body.types.map(type => {
+            // const itemData = genDBManyData(req.body[`${type}/items`], "title")
+            const items = req.body[`${type}/items`]
+            const itemData = Array.isArray(items) ? items : [items]
 
-        // console.log(filesProduct)
+            console.log(itemData)
 
-        // const productImage = await prisma.image.createMany({
-        //     data: filesProduct
-        // })
+            const productOptionalPromise = async () => {
+                const productOptionalType = await prisma.productOptionalType.create(
+                    {
+                        data: {
+                            title: type,
+                            productId: product.id,
+                        }
+                    }
+                )
 
+                const productOptionalItemCreating = itemData.map(item => {
+                    console.log("73-qqqqqqqqqqqq", objectFile[`${type}-${item}/image`])
+                    const fileItem = objectFile[`${type}-${item}/image`]
+                    const createData = fileItem ?
+                        {
+                            productOptionalTypeId: productOptionalType.id,
+                            title: item,
+                            images: {
+                                create: {
+                                    productId: product.id,
+                                    src: objectFile[`${type}-${item}/image`][0],
+                                }
+                            }
+                        }
+                        :
+                        {
+                            productOptionalTypeId: productOptionalType.id,
+                            title: item,
+                        }
 
-        console.log(product)
-        // const respond = { product, productImage }
-        const respond = { product, productType }
+                    const productItemPromise = async () => {
+                        return await prisma.productOptionalItem.create({
+                            data: createData,
+                            include: {
+                                images: true
+                            }
+                        })
+                    }
+                    return productItemPromise()
+                })
+                const productOptionalItem = await Promise.all(productOptionalItemCreating)
+
+                productOptionalType.items = productOptionalItem
+                return productOptionalType
+            }
+
+            return productOptionalPromise()
+        })
+
+        const productOptionals = await Promise.all(productOptionalsCreating)
+
+        const respond = { product, productOptionals }
         res.status(200).json(respond)
     } catch (error) {
         next(createError(error))
