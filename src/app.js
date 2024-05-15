@@ -5,8 +5,7 @@ const cors = require('cors')
 
 const rateLimitMiddleware = require('./middlewares/rate-limit')
 const authRoute = require('./routes/auth-route');
-const createError = require('./utils/create-error');
-const prisma = require('./models/prisma');
+const productRoute = require('./routes/product-route');
 
 const app = express()
 
@@ -16,6 +15,8 @@ app.use(rateLimitMiddleware)
 app.use(express.json())
 
 app.use('/auth', authRoute)
+
+app.use('/product', productRoute)
 
 app.use((req, res, next) => {
     res.status(404).json({ message: 'path not found' })
