@@ -65,7 +65,6 @@ exports.createProduct = async (req, res, next) => {
             const items = req.body[`${type}/items`]
             const itemData = Array.isArray(items) ? items : [items]
 
-
             const productOptionalPromise = async () => {
                 const productOptionalType = await prisma.productOptionalType.create(
                     {
@@ -84,10 +83,14 @@ exports.createProduct = async (req, res, next) => {
                     console.log("82-item ", item)
                     console.log("83-combineItemData ", combineItemData)
 
-                    const createData = fileItem ?
+                    const primaryItemData = fileItem ?
                         {
-                            productOptionalTypeId: productOptionalType.id,
                             title: item,
+                            optionalTypeItem: {
+                                create: {
+                                    productOptionalTypeId: productOptionalType.id
+                                }
+                            },
                             images: {
                                 create: {
                                     productId: product.id,
@@ -97,20 +100,30 @@ exports.createProduct = async (req, res, next) => {
                         }
                         :
                         {
-                            productOptionalTypeId: productOptionalType.id,
                             title: item,
+                            optionalTypeItem: {
+                                create: {
+                                    productOptionalTypeId: productOptionalType.id
+                                }
+                            }
                         }
 
                     const productItemPromise = async () => {
                         const primaryItem = await prisma.productOptionalItem.create({
-                            data: createData,
+                            data: primaryItemData,
                             include: {
                                 images: true
                             }
                         })
 
                         const combineItemsCreating = combineItemData.map(async (item) => {
-                            const combineItem = await prisma.productOptionalItem.create({
+                            const combineItem = await prisma.productOptionalItem.upsert({
+                                where: {
+                                    title: item.title,
+                                    OptionalTypeItem: {
+                                        productOptionalTypeId: productOptionalType.id
+                                    }
+                                },
                                 data: {
                                     title: item.title,
                                     productOptionalTypeId: productOptionalType.id,
@@ -125,10 +138,10 @@ exports.createProduct = async (req, res, next) => {
                         }
                         )
                         const combineItems = await Promise.all(combineItemsCreating)
-                        // const result = { primaryItem, combineItem}
-                        primaryItem.combineItem = combineItems
 
-                        return primaryItem
+                        const result = { primaryItem, combineItems }
+
+                        return result
                     }
                     return productItemPromise()
                 })
