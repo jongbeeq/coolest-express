@@ -69,10 +69,12 @@ exports.createProduct = async (req, res, next) => {
             data: productData
         })
 
+        let combineItemsCreatingOrder = []
         const productOptionalsCreating = req.body.types.map(type => {
             const items = req.body[`${type}/items`]
             const itemData = Array.isArray(items) ? items : [items]
 
+            let combineItemsCreatingTypeMap = []
             const productOptionalPromise = async () => {
                 const productOptionalType = await prisma.productOptionalType.create(
                     {
@@ -85,38 +87,44 @@ exports.createProduct = async (req, res, next) => {
 
                 const productOptionalItemCreating = itemData.map(item => {
                     const fileItem = req.files.length && objectFile[`${type}-${item}/image`]
+                    const combineItemTotal = req.body.types.reduce((allTypes, type) => {
+                        allTypes[type] = 0
+                        return allTypes
+                    }, {})
+                    console.log(combineItemTotal)
+                    for (let key in req.body) {
+                        const combineItemType = key.endsWith('/combineItems') && key.split('-')[0]
+                        if (combineItemType in combineItemTotal) {
+                            ++combineItemTotal[combineItemType]
+                        }
+                    }
+
+                    console.log(combineItemTotal)
+
                     const combineItemData = genDBManyData(req.body[`${type}-${item}/combineItems`], 'title')
 
                     console.log("81-type ", type)
                     console.log("82-item ", item)
                     console.log("83-combineItemData ", combineItemData)
 
-                    const primaryItemData = fileItem ?
-                        {
-                            title: item,
-                            productId: product.id,
-                            optionalTypeItems: {
-                                create: {
-                                    productOptionalTypeId: productOptionalType.id
-                                }
-                            },
-                            images: {
-                                create: {
-                                    productId: product.id,
-                                    src: objectFile[`${type}-${item}/image`][0],
-                                }
-                            },
-                        }
-                        :
-                        {
-                            title: item,
-                            productId: product.id,
-                            optionalTypeItems: {
-                                create: {
-                                    productOptionalTypeId: productOptionalType.id
-                                }
+                    const primaryItemData = {
+                        title: item,
+                        productId: product.id,
+                        optionalTypeItems: {
+                            create: {
+                                productOptionalTypeId: productOptionalType.id
                             }
                         }
+                    }
+
+                    if (fileItem) {
+                        primaryItemData.images = {
+                            create: {
+                                productId: product.id,
+                                src: objectFile[`${type}-${item}/image`][0],
+                            }
+                        }
+                    }
 
                     const productItemPromise = async () => {
                         const primaryItem = await prisma.productOptionalItem.create({
@@ -174,58 +182,134 @@ exports.createProduct = async (req, res, next) => {
                         // }
                         // )
 
-                        const combineItemsCreating = combineItemData.map(async (item) => {
-                            console.log("122-asdsa;das;ka;ldk ", item)
-                            const isExistCombineItem = await prisma.productOptionalItem.findFirst({
-                                where: {
-                                    title: item.title,
-                                    productId: product.id
-                                }
-                            })
+                        //##################################################
 
-                            console.log("131 dasdwww ", isExistCombineItem)
-
-                            if (isExistCombineItem) {
-                                const updateCombieItem = await prisma.combineOptionalItem.create({
-                                    data: {
-                                        primaryId: primaryItem.id,
-                                        combineId: isExistCombineItem.id,
+                        const combineItemsCreatingMap = combineItemData.map((itemCombine) => {
+                            const combineItemsCreating = async () => {
+                                console.log("122-asdsa;das;ka;ldk ", item)
+                                const isExistCombineItem = await prisma.productOptionalItem.findFirst({
+                                    where: {
+                                        title: itemCombine.title,
+                                        productId: product.id
                                     }
                                 })
-                                console.log(updateCombieItem)
-                                return updateCombieItem
-                            }
 
-                            const combineItem = await prisma.productOptionalItem.create({
-                                data: {
-                                    title: item.title,
-                                    productId: product.id,
-                                    combineItem: {
-                                        create: {
+                                console.log("131 dasdwww ", isExistCombineItem)
+
+                                if (isExistCombineItem) {
+                                    const updateCombieItem = await prisma.combineOptionalItem.create({
+                                        data: {
                                             primaryId: primaryItem.id,
+                                            combineId: isExistCombineItem.id,
                                         }
-                                    },
-                                    optionalTypeItems: {
-                                        create: {
-                                            productOptionalTypeId: productOptionalType.id
+                                    })
+                                    console.log("187 asdnaskjdha ", updateCombieItem)
+                                    return updateCombieItem
+                                }
+
+                                const combineItem = await prisma.productOptionalItem.create({
+                                    data: {
+                                        title: itemCombine.title,
+                                        productId: product.id,
+                                        combineItem: {
+                                            create: {
+                                                primaryId: primaryItem.id,
+                                            }
+                                        },
+                                        optionalTypeItems: {
+                                            create: {
+                                                productOptionalTypeId: productOptionalType.id
+                                            }
                                         }
                                     }
-                                }
-                            })
-                            return combineItem
+                                })
+
+                                console.log(`208 combineItem/${type}/${item} `, combineItem)
+
+                                return combineItem
+                            }
+
+                            return { [`${type}/${item}`]: combineItemsCreating }
+
+                            // return combineItemsCreating
                         }
                         )
-                        const combineItems = await Promise.all(combineItemsCreating)
 
-                        const result = { primaryItem, combineItems }
+                        console.log(`224 combineItemsCreatingMap/${type}/${item}}`, combineItemsCreatingMap)
+                        // console.dir(`222 combineItemsCreatingOrder[0]/${type}/${item}}`, await combineItemsCreatingMap[0]())
+                        combineItemsCreatingTypeMap = [...combineItemsCreatingTypeMap, ...combineItemsCreatingMap]
+                        console.log(`227 combineItemsCreatingTypeMap/${type}/${item}}`, combineItemsCreatingTypeMap)
+                        console.log(`243 combineItemTotal/${type}}`, combineItemTotal[type])
+                        if (combineItemsCreatingTypeMap.length === combineItemTotal[type]) {
+                            const combineItemsCreatingType = [async () => await Promise.all(combineItemsCreatingTypeMap)]
+                            console.log(`229 combineItemsCreatingType/${type}/${item}}`, combineItemsCreatingType)
+                            combineItemsCreatingOrder = [...combineItemsCreatingOrder, ...combineItemsCreatingType]
+                            console.log(`231 combineItemsCreatingOrder/${type}/${item}}`, combineItemsCreatingOrder)
+                        }
+                        //##################################################
+
+                        // const combineItemsCreating = combineItemData.map(async (item) => {
+                        //     console.log("122-asdsa;das;ka;ldk ", item)
+                        //     const isExistCombineItem = await prisma.productOptionalItem.findFirst({
+                        //         where: {
+                        //             title: item.title,
+                        //             productId: product.id
+                        //         }
+                        //     })
+
+                        //     console.log("131 dasdwww ", isExistCombineItem)
+
+                        //     if (isExistCombineItem) {
+                        //         const updateCombieItem = await prisma.combineOptionalItem.create({
+                        //             data: {
+                        //                 primaryId: primaryItem.id,
+                        //                 combineId: isExistCombineItem.id,
+                        //             }
+                        //         })
+                        //         console.log("187 asdnaskjdha ", updateCombieItem)
+                        //         return updateCombieItem
+                        //     }
+
+                        //     const combineItem = await prisma.productOptionalItem.create({
+                        //         data: {
+                        //             title: item.title,
+                        //             productId: product.id,
+                        //             combineItem: {
+                        //                 create: {
+                        //                     primaryId: primaryItem.id,
+                        //                 }
+                        //             },
+                        //             optionalTypeItems: {
+                        //                 create: {
+                        //                     productOptionalTypeId: productOptionalType.id
+                        //                 }
+                        //             }
+                        //         }
+                        //     })
+
+                        //     console.log("208 asdnaskjdha ", combineItem)
+
+                        //     const a = await prisma.productOptionalItem.findFirst({
+                        //         where: {
+                        //             title: item.title,
+                        //             productId: product.id
+                        //         }
+                        //     })
+
+                        //     console.log("217 test ", a)
+                        //     return combineItem
+                        // }
+                        // )
+                        // const combineItems = await Promise.all(combineItemsCreating)
+
+                        const result = { primaryItem }
 
                         return result
                     }
                     return productItemPromise()
                 })
-                const productOptionalItem = await Promise.all(productOptionalItemCreating)
 
-                productOptionalType.items = productOptionalItem
+                // productOptionalType.items = productOptionalItem
                 return productOptionalType
             }
 
@@ -233,6 +317,7 @@ exports.createProduct = async (req, res, next) => {
         })
 
         const productOptionals = await Promise.all(productOptionalsCreating)
+        // console.log("297 combineItemsCreatingOrder", combineItemsCreatingOrder)
 
         const respond = { product, productOptionals }
         res.status(200).json(respond)
