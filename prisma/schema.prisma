@@ -63,35 +63,46 @@ model ProductCategory {
 }
 
 model ProductOptionalType {
-  id                   Int                   @id @default(autoincrement())
-  title                String
-  productId            Int
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime?             @updatedAt
-  product              Product               @relation("productOptionalType", fields: [productId], references: [id])
-  productOptionalItems ProductOptionalItem[] @relation("optionalTypeItem")
+  id               Int                @id @default(autoincrement())
+  title            String
+  productId        Int
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime?          @updatedAt
+  product          Product            @relation("productOptionalType", fields: [productId], references: [id])
+  OptionalTypeItem OptionalTypeItem[] @relation("optionalTypeItem")
 }
 
 model ProductOptionalItem {
-  id                    Int                   @id @default(autoincrement())
-  title                 String
-  price                 Int?
-  balance               Int?
+  id               Int                   @id @default(autoincrement())
+  title            String
+  price            Int?
+  balance          Int?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime?             @updatedAt
+  images           Image[]               @relation("optionItemImage")
+  primaryItem      CombineOptionalItem[] @relation("primaryItem")
+  combineItem      CombineOptionalItem[] @relation("combineItem")
+  OptionalTypeItem OptionalTypeItem[]    @relation("optionalItemType")
+}
+
+model OptionalTypeItem {
+  id                    Int                 @id @default(autoincrement())
+  productOptionalItemId Int
   productOptionalTypeId Int
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime?             @updatedAt
-  images                Image[]               @relation("optionItemImage")
-  productOptionalType   ProductOptionalType   @relation("optionalTypeItem", fields: [productOptionalTypeId], references: [id])
-  primaryItem           CombineOptionalItem[] @relation("primaryItem")
-  compoundItem          CombineOptionalItem[] @relation("compoundItem")
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime?           @updatedAt
+  productOptionalType   ProductOptionalType @relation("optionalTypeItem", fields: [productOptionalTypeId], references: [id])
+  productOptionalItem   ProductOptionalItem @relation("optionalItemType", fields: [productOptionalItemId], references: [id])
 }
 
 model CombineOptionalItem {
-  id           Int                 @id @default(autoincrement())
-  primaryId    Int
-  compoundId   Int
-  primaryItem  ProductOptionalItem @relation("primaryItem", fields: [primaryId], references: [id])
-  compoundItem ProductOptionalItem @relation("compoundItem", fields: [compoundId], references: [id])
+  id          Int                 @id @default(autoincrement())
+  primaryId   Int
+  combineId   Int
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime?           @updatedAt
+  primaryItem ProductOptionalItem @relation("primaryItem", fields: [primaryId], references: [id])
+  combineItem ProductOptionalItem @relation("combineItem", fields: [combineId], references: [id])
 }
 
 model Image {

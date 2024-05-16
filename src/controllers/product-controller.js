@@ -17,7 +17,7 @@ exports.createProduct = async (req, res, next) => {
 
         const genDBManyData = (datas, col, fixField) => {
             if (!Array.isArray(datas)) {
-                return { ...fixField, [col]: datas }
+                return [{ ...fixField, [col]: datas }]
             }
 
             return datas.map(data => {
@@ -62,11 +62,9 @@ exports.createProduct = async (req, res, next) => {
 
 
         const productOptionalsCreating = req.body.types.map(type => {
-            // const itemData = genDBManyData(req.body[`${type}/items`], "title")
             const items = req.body[`${type}/items`]
             const itemData = Array.isArray(items) ? items : [items]
 
-            console.log(itemData)
 
             const productOptionalPromise = async () => {
                 const productOptionalType = await prisma.productOptionalType.create(
@@ -79,8 +77,13 @@ exports.createProduct = async (req, res, next) => {
                 )
 
                 const productOptionalItemCreating = itemData.map(item => {
-                    console.log("73-qqqqqqqqqqqq", objectFile[`${type}-${item}/image`])
                     const fileItem = objectFile[`${type}-${item}/image`]
+                    const combineItemData = genDBManyData(req.body[`${type}-${item}/combineItems`], 'title')
+
+                    console.log("81-type ", type)
+                    console.log("82-item ", item)
+                    console.log("83-combineItemData ", combineItemData)
+
                     const createData = fileItem ?
                         {
                             productOptionalTypeId: productOptionalType.id,
@@ -90,7 +93,7 @@ exports.createProduct = async (req, res, next) => {
                                     productId: product.id,
                                     src: objectFile[`${type}-${item}/image`][0],
                                 }
-                            }
+                            },
                         }
                         :
                         {
@@ -99,12 +102,33 @@ exports.createProduct = async (req, res, next) => {
                         }
 
                     const productItemPromise = async () => {
-                        return await prisma.productOptionalItem.create({
+                        const primaryItem = await prisma.productOptionalItem.create({
                             data: createData,
                             include: {
                                 images: true
                             }
                         })
+
+                        const combineItemsCreating = combineItemData.map(async (item) => {
+                            const combineItem = await prisma.productOptionalItem.create({
+                                data: {
+                                    title: item.title,
+                                    productOptionalTypeId: productOptionalType.id,
+                                    compoundItem: {
+                                        create: {
+                                            primaryId: primaryItem.id,
+                                        }
+                                    }
+                                }
+                            })
+                            return combineItem
+                        }
+                        )
+                        const combineItems = await Promise.all(combineItemsCreating)
+                        // const result = { primaryItem, combineItem}
+                        primaryItem.combineItem = combineItems
+
+                        return primaryItem
                     }
                     return productItemPromise()
                 })
@@ -122,8 +146,8 @@ exports.createProduct = async (req, res, next) => {
         const respond = { product, productOptionals }
         res.status(200).json(respond)
     } catch (error) {
-        next(createError(error))
         console.log('error asdasads ', error)
+        next(createError(error))
     } finally {
         if (req.files) {
             req.files.map(file =>
