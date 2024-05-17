@@ -95,7 +95,8 @@ exports.createProduct = async (req, res, next) => {
                     for (let key in req.body) {
                         const combineItemType = key.endsWith('/combineItems') && key.split('-')[0]
                         if (combineItemType in combineItemTotal) {
-                            ++combineItemTotal[combineItemType]
+                            const increase = Array.isArray(req.body[key]) ? req.body[key].length : 1
+                            combineItemTotal[combineItemType] += increase
                         }
                     }
 
@@ -229,7 +230,7 @@ exports.createProduct = async (req, res, next) => {
                                 return combineItem
                             }
 
-                            return { [`${type}/${item}`]: combineItemsCreating }
+                            return combineItemsCreating
 
                             // return combineItemsCreating
                         }
@@ -240,12 +241,29 @@ exports.createProduct = async (req, res, next) => {
                         combineItemsCreatingTypeMap = [...combineItemsCreatingTypeMap, ...combineItemsCreatingMap]
                         console.log(`227 combineItemsCreatingTypeMap/${type}/${item}}`, combineItemsCreatingTypeMap)
                         console.log(`243 combineItemTotal/${type}}`, combineItemTotal[type])
+                        console.log(`244 combineItemsCreatingTypeMap.length/${type}}`, combineItemsCreatingTypeMap.length)
+                        console.log(`245 combineItemsCreatingTypeMap.length === combineItemTotal/${type}}`, combineItemsCreatingTypeMap.length === combineItemTotal[type])
                         if (combineItemsCreatingTypeMap.length === combineItemTotal[type]) {
-                            const combineItemsCreatingType = [async () => await Promise.all(combineItemsCreatingTypeMap)]
-                            console.log(`229 combineItemsCreatingType/${type}/${item}}`, combineItemsCreatingType)
-                            combineItemsCreatingOrder = [...combineItemsCreatingOrder, ...combineItemsCreatingType]
-                            console.log(`231 combineItemsCreatingOrder/${type}/${item}}`, combineItemsCreatingOrder)
+                            const combineItemsCreatingType = async () => {
+                                const combineItemsCreatingTypeMapCall = combineItemsCreatingTypeMap.map((fn) => fn())
+                                console.log(`249 combineItemsCreatingTypeMapCall/${type}/${item}`, combineItemsCreatingTypeMapCall)
+                                return await Promise.all(combineItemsCreatingTypeMapCall)
+                            }
+                            console.log(`252 combineItemsCreatingType/${type}/${item}}`, combineItemsCreatingType)
+                            combineItemsCreatingOrder = [...combineItemsCreatingOrder, combineItemsCreatingType]
+                            console.log(`254 combineItemsCreatingOrder/${type}/${item}}`, combineItemsCreatingOrder)
                         }
+                        const combineItemsCreatingOrderCall = combineItemsCreatingOrder.length === req.body.types.length &&
+                            // combineItemsCreatingOrder.reduce((fn, pmAll) => fn().then(() => pmAll()), async () => { })
+                            combineItemsCreatingOrder.reduce((fn, pmAll) => {
+                                console.log(`259 fn/${type}/${item}}`, fn)
+                                console.log(`260 pmAll/${type}/${item}}`, pmAll)
+                                console.log(`261 (typeof fn) === 'function'/${type}/${item}}`, (typeof fn) === 'function')
+                                return (typeof fn) === 'function' ? fn().then(() => pmAll()) : fn.then(() => pmAll())
+                                // return fn().then(() => pmAll())
+                            })
+                        console.log(`263 combineItemsCreatingOrderCall/${type}/${item}} `, combineItemsCreatingOrderCall)
+                        // await combineItemsCreatingOrderCall()
                         //##################################################
 
                         // const combineItemsCreating = combineItemData.map(async (item) => {
