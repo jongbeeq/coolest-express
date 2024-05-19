@@ -87,22 +87,91 @@ exports.createProduct = async (req, res, next) => {
 
                 const productOptionalItemCreating = itemData.map(item => {
                     const fileItem = req.files.length && objectFile[`${type}-${item}/image`]
-                    const combineItemTotal = req.body.types.reduce((allTypes, type) => {
-                        allTypes[type] = 0
-                        return allTypes
-                    }, {})
-                    console.log(combineItemTotal)
+                    // const combineItemTotal = req.body.types.reduce((allTypes, type) => {
+                    //     allTypes[type] = 0
+                    //     return allTypes
+                    // }, {})
+                    let combineItemTotal = { total: 0 }
+                    let combineItemTotalTemp = {}
                     for (let key in req.body) {
-                        const combineItemType = key.endsWith('/combineItems') && key.split('-')[0]
-                        if (combineItemType in combineItemTotal) {
-                            const increase = Array.isArray(req.body[key]) ? req.body[key].length : 1
-                            combineItemTotal[combineItemType] += increase
+                        console.log('97 key ', key)
+                        const combineItemNum = key.split('/combineItems')[1]
+                        if (combineItemNum) {
+                            combineItemTotal[`combineItems${combineItemNum}`] = {}
+                            console.log("100 combinItemNum ", combineItemNum)
+                            if (combineItemNum > combineItemTotal.total) {
+                                combineItemTotal.total = +combineItemNum
+                            }
+                        }
+                        if (key === 'types') {
+                            combineItemTotalTemp[`combineItems1`] = req.body[key].reduce((allTypes, type) => {
+                                allTypes[type] = 0
+                                return allTypes
+                            }, {})
+                        }
+                        if (key.endsWith('/items')) {
+                            console.log('112 dsadas ', req.body[key])
+                            combineItemTotalTemp[`combineItems2`] = { ...combineItemTotalTemp[`combineItems2`] }
+                            const allItems = Array.isArray(req.body[key]) ? [...req.body[key]] : [req.body[key]]
+                            console.log(allItems)
+                            allItems.forEach((item) => combineItemTotalTemp[`combineItems2`][item] = 0)
+                            console.log('118 combineItemTotalTemp', combineItemTotalTemp)
+                        }
+                        if (key.endsWith(`combineItems${combineItemNum}`)) {
+                            // console.log("112 welcome key === `combineItems${combineItemNum")
+                            // if (combineItemNum == 1) {
+                            // console.log("114 welcome combineItemNum == 1")
+                            console.log('123 combineItemNum ', combineItemNum)
+                            console.log('124 key ', key)
+                            let combineItemTotalGroup
+                            switch (+combineItemNum) {
+                                case 1:
+                                    const type = key.split('-')[0]
+                                    combineItemTotalGroup = type
+                                    break
+                                default:
+                                    const primaryItems = key.split('+')
+                                    combineItemTotalGroup = primaryItems.find((item) => item)
+                                    break
+                            }
+                            console.log('132 combineItemTotalGroup ', combineItemTotalGroup)
+                            // console.log("116 combineItemType ", combineItemType)
+                            if (combineItemTotalGroup in combineItemTotalTemp[`combineItems${combineItemNum}`]) {
+                                const increase = Array.isArray(req.body[key]) ? req.body[key].length : 1
+                                combineItemTotalTemp[`combineItems${combineItemNum}`][combineItemTotalGroup] += increase
+                            }
+                            // }
                         }
                     }
 
-                    console.log(combineItemTotal)
+                    for (let key in combineItemTotal) {
+                        if (combineItemTotalTemp[key]) {
+                            combineItemTotal[key] = combineItemTotalTemp[key]
+                        }
+                    }
 
-                    const combineItemData = genDBManyData(req.body[`${type}-${item}/combineItems`], 'title')
+                    console.log('120 combineItemTotal Before', combineItemTotal)
+                    console.log('121 combineItemTotalTemp', combineItemTotalTemp)
+                    console.log('122 combineItemTotal After', combineItemTotal)
+                    console.log(`123 combineItemTotal/${type}/${item}}`, combineItemTotal['combineItems1'][type])
+                    // for (let key in req.body) {
+                    //     const combineItemType = key.endsWith('/combineItems') && key.split('-')[0]
+                    //     if (combineItemType in combineItemTotal) {
+                    //         const increase = Array.isArray(req.body[key]) ? req.body[key].length : 1
+                    //         combineItemTotal[combineItemType] += increase
+                    //     }
+                    // }
+
+                    // console.log(combineItemTotal)
+
+                    const combineItemData = genDBManyData(req.body[`${type}-${item}/combineItems1`], 'title')
+                    // let combineItemData = {}
+                    // for (let i = 1; i <= combineItemTotal.total; i++) {
+                    //     combineItemData[`combineItems${i}`] = i === 1 &&
+                    //         genDBManyData(req.body[`${type}-${item}/combineItems${i}`], 'title')
+
+
+                    // }
 
                     console.log("81-type ", type)
                     console.log("82-item ", item)
@@ -135,12 +204,102 @@ exports.createProduct = async (req, res, next) => {
                             }
                         })
 
-                        // const combineItems = combineItemData.map((item) => {
+
+                        //##################################################
+                        let countCombineItems = 1
+                        const comBineItemCreateFn = (combineItemData, primaryId) => {
+                            if (countCombineItems > combineItemTotal.total) {
+                                return
+                            }
+                            const combineItemsCreatingMap = combineItemData.map((itemCombine) => {
+                                const combineItemsCreating = async () => {
+                                    const isExistCombineItem = await prisma.productOptionalItem.findFirst({
+                                        where: {
+                                            title: itemCombine.title,
+                                            productId: product.id
+                                        }
+                                    })
+
+                                    console.log("131 dasdwww ", isExistCombineItem)
+
+                                    if (isExistCombineItem) {
+                                        const updateCombieItem = await prisma.combineOptionalItem.create({
+                                            data: {
+                                                primaryId: primaryId,
+                                                combineId: isExistCombineItem.id,
+                                            }
+                                        })
+                                        console.log("187 asdnaskjdha ", updateCombieItem)
+                                        return updateCombieItem
+                                    }
+
+                                    const combineItem = await prisma.productOptionalItem.create({
+                                        data: {
+                                            title: itemCombine.title,
+                                            productId: product.id,
+                                            combineItem: {
+                                                create: {
+                                                    primaryId: primaryId,
+                                                }
+                                            },
+                                        }
+                                    })
+
+                                    countCombineItems++
+                                    console.log(`208 combineItem/${type}/${item} `, combineItem)
+                                    if (combineItem) {
+                                        const combineSubItemData = genDBManyData(req.body[`${itemCombine.title}/combineItems${countCombineItems}`], 'title')
+
+                                        comBineItemCreateFn(combineSubItemData, combineItem.id)
+                                    }
+
+                                    return combineItem
+                                }
+
+                                return combineItemsCreating
+                            }
+                            )
+
+                            if (countCombineItems > 1) {
+                                const combineItemsCreating = async () => {
+                                    const combineItemsCreatingCall = combineItemsCreatingMap.map((fn) => fn())
+                                    return await Promise.all(combineItemsCreatingCall)
+                                }
+
+                                combineItemsCreating()
+                            }
+                            console.log(`224 combineItemsCreatingMap/${type}/${item}}`, combineItemsCreatingMap)
+                            combineItemsCreatingTypeMap = [...combineItemsCreatingTypeMap, ...combineItemsCreatingMap]
+                            console.log(`227 combineItemsCreatingTypeMap/${type}/${item}}`, combineItemsCreatingTypeMap)
+                            console.log(`243 combineItemTotal/${type}}`, combineItemTotal['combineItems1'][type])
+                            console.log(`244 combineItemsCreatingTypeMap.length/${type}}`, combineItemsCreatingTypeMap.length)
+                            console.log(`245 combineItemsCreatingTypeMap.length === combineItemTotal/${type}}`, combineItemsCreatingTypeMap.length === combineItemTotal['combineItems1'][type])
+                            if (combineItemsCreatingTypeMap.length === combineItemTotal['combineItems1'][type]) {
+                                const combineItemsCreatingType = async () => {
+                                    const combineItemsCreatingTypeMapCall = combineItemsCreatingTypeMap.map((fn) => fn())
+                                    console.log(`249 combineItemsCreatingTypeMapCall/${type}/${item}`, combineItemsCreatingTypeMapCall)
+                                    return await Promise.all(combineItemsCreatingTypeMapCall)
+                                }
+                                console.log(`252 combineItemsCreatingType/${type}/${item}}`, combineItemsCreatingType)
+                                combineItemsCreatingOrder = [...combineItemsCreatingOrder, combineItemsCreatingType]
+                                console.log(`254 combineItemsCreatingOrder/${type}/${item}}`, combineItemsCreatingOrder)
+                            }
+                            const combineItemsCreatingOrderCall = combineItemsCreatingOrder.length === req.body.types.length &&
+                                combineItemsCreatingOrder.reduce((fn, pmAll) => {
+                                    console.log(`259 fn/${type}/${item}}`, fn)
+                                    console.log(`260 pmAll/${type}/${item}}`, pmAll)
+                                    console.log(`261 (typeof fn) === 'function'/${type}/${item}}`, (typeof fn) === 'function')
+                                    return (typeof fn) === 'function' ? fn().then(() => pmAll()) : fn.then(() => pmAll())
+                                })
+                            console.log(`263 combineItemsCreatingOrderCall/${type}/${item}} `, combineItemsCreatingOrderCall)
+                        }
+                        // #######################################
+                        // const combineItemsCreatingMap = combineItemData.map((itemCombine) => {
                         //     const combineItemsCreating = async () => {
                         //         console.log("122-asdsa;das;ka;ldk ", item)
                         //         const isExistCombineItem = await prisma.productOptionalItem.findFirst({
                         //             where: {
-                        //                 title: item.title,
+                        //                 title: itemCombine.title,
                         //                 productId: product.id
                         //             }
                         //         })
@@ -154,13 +313,13 @@ exports.createProduct = async (req, res, next) => {
                         //                     combineId: isExistCombineItem.id,
                         //                 }
                         //             })
-                        //             console.log(updateCombieItem)
+                        //             console.log("187 asdnaskjdha ", updateCombieItem)
                         //             return updateCombieItem
                         //         }
 
                         //         const combineItem = await prisma.productOptionalItem.create({
                         //             data: {
-                        //                 title: item.title,
+                        //                 title: itemCombine.title,
                         //                 productId: product.id,
                         //                 combineItem: {
                         //                     create: {
@@ -174,151 +333,46 @@ exports.createProduct = async (req, res, next) => {
                         //                 }
                         //             }
                         //         })
+
+                        //         console.log(`208 combineItem/${type}/${item} `, combineItem)
+
                         //         return combineItem
                         //     }
-                        //     let result
-                        //     combineItemsCreating().then(res => result = res)
-                        //     console.log("164 combineItemsCreating----------- ", result)
 
+                        //     return combineItemsCreating
+
+                        //     // return combineItemsCreating
                         // }
                         // )
 
-                        //##################################################
-
-                        const combineItemsCreatingMap = combineItemData.map((itemCombine) => {
-                            const combineItemsCreating = async () => {
-                                console.log("122-asdsa;das;ka;ldk ", item)
-                                const isExistCombineItem = await prisma.productOptionalItem.findFirst({
-                                    where: {
-                                        title: itemCombine.title,
-                                        productId: product.id
-                                    }
-                                })
-
-                                console.log("131 dasdwww ", isExistCombineItem)
-
-                                if (isExistCombineItem) {
-                                    const updateCombieItem = await prisma.combineOptionalItem.create({
-                                        data: {
-                                            primaryId: primaryItem.id,
-                                            combineId: isExistCombineItem.id,
-                                        }
-                                    })
-                                    console.log("187 asdnaskjdha ", updateCombieItem)
-                                    return updateCombieItem
-                                }
-
-                                const combineItem = await prisma.productOptionalItem.create({
-                                    data: {
-                                        title: itemCombine.title,
-                                        productId: product.id,
-                                        combineItem: {
-                                            create: {
-                                                primaryId: primaryItem.id,
-                                            }
-                                        },
-                                        optionalTypeItems: {
-                                            create: {
-                                                productOptionalTypeId: productOptionalType.id
-                                            }
-                                        }
-                                    }
-                                })
-
-                                console.log(`208 combineItem/${type}/${item} `, combineItem)
-
-                                return combineItem
-                            }
-
-                            return combineItemsCreating
-
-                            // return combineItemsCreating
-                        }
-                        )
-
-                        console.log(`224 combineItemsCreatingMap/${type}/${item}}`, combineItemsCreatingMap)
-                        // console.dir(`222 combineItemsCreatingOrder[0]/${type}/${item}}`, await combineItemsCreatingMap[0]())
-                        combineItemsCreatingTypeMap = [...combineItemsCreatingTypeMap, ...combineItemsCreatingMap]
-                        console.log(`227 combineItemsCreatingTypeMap/${type}/${item}}`, combineItemsCreatingTypeMap)
-                        console.log(`243 combineItemTotal/${type}}`, combineItemTotal[type])
-                        console.log(`244 combineItemsCreatingTypeMap.length/${type}}`, combineItemsCreatingTypeMap.length)
-                        console.log(`245 combineItemsCreatingTypeMap.length === combineItemTotal/${type}}`, combineItemsCreatingTypeMap.length === combineItemTotal[type])
-                        if (combineItemsCreatingTypeMap.length === combineItemTotal[type]) {
-                            const combineItemsCreatingType = async () => {
-                                const combineItemsCreatingTypeMapCall = combineItemsCreatingTypeMap.map((fn) => fn())
-                                console.log(`249 combineItemsCreatingTypeMapCall/${type}/${item}`, combineItemsCreatingTypeMapCall)
-                                return await Promise.all(combineItemsCreatingTypeMapCall)
-                            }
-                            console.log(`252 combineItemsCreatingType/${type}/${item}}`, combineItemsCreatingType)
-                            combineItemsCreatingOrder = [...combineItemsCreatingOrder, combineItemsCreatingType]
-                            console.log(`254 combineItemsCreatingOrder/${type}/${item}}`, combineItemsCreatingOrder)
-                        }
-                        const combineItemsCreatingOrderCall = combineItemsCreatingOrder.length === req.body.types.length &&
-                            // combineItemsCreatingOrder.reduce((fn, pmAll) => fn().then(() => pmAll()), async () => { })
-                            combineItemsCreatingOrder.reduce((fn, pmAll) => {
-                                console.log(`259 fn/${type}/${item}}`, fn)
-                                console.log(`260 pmAll/${type}/${item}}`, pmAll)
-                                console.log(`261 (typeof fn) === 'function'/${type}/${item}}`, (typeof fn) === 'function')
-                                return (typeof fn) === 'function' ? fn().then(() => pmAll()) : fn.then(() => pmAll())
-                                // return fn().then(() => pmAll())
-                            })
-                        console.log(`263 combineItemsCreatingOrderCall/${type}/${item}} `, combineItemsCreatingOrderCall)
-                        // await combineItemsCreatingOrderCall()
-                        //##################################################
-
-                        // const combineItemsCreating = combineItemData.map(async (item) => {
-                        //     console.log("122-asdsa;das;ka;ldk ", item)
-                        //     const isExistCombineItem = await prisma.productOptionalItem.findFirst({
-                        //         where: {
-                        //             title: item.title,
-                        //             productId: product.id
-                        //         }
-                        //     })
-
-                        //     console.log("131 dasdwww ", isExistCombineItem)
-
-                        //     if (isExistCombineItem) {
-                        //         const updateCombieItem = await prisma.combineOptionalItem.create({
-                        //             data: {
-                        //                 primaryId: primaryItem.id,
-                        //                 combineId: isExistCombineItem.id,
-                        //             }
-                        //         })
-                        //         console.log("187 asdnaskjdha ", updateCombieItem)
-                        //         return updateCombieItem
+                        // console.log(`224 combineItemsCreatingMap/${type}/${item}}`, combineItemsCreatingMap)
+                        // combineItemsCreatingTypeMap = [...combineItemsCreatingTypeMap, ...combineItemsCreatingMap]
+                        // console.log(`227 combineItemsCreatingTypeMap/${type}/${item}}`, combineItemsCreatingTypeMap)
+                        // console.log(`243 combineItemTotal/${type}}`, combineItemTotal[type])
+                        // console.log(`244 combineItemsCreatingTypeMap.length/${type}}`, combineItemsCreatingTypeMap.length)
+                        // console.log(`245 combineItemsCreatingTypeMap.length === combineItemTotal/${type}}`, combineItemsCreatingTypeMap.length === combineItemTotal[type])
+                        // if (combineItemsCreatingTypeMap.length === combineItemTotal[type]) {
+                        //     const combineItemsCreatingType = async () => {
+                        //         const combineItemsCreatingTypeMapCall = combineItemsCreatingTypeMap.map((fn) => fn())
+                        //         console.log(`249 combineItemsCreatingTypeMapCall/${type}/${item}`, combineItemsCreatingTypeMapCall)
+                        //         return await Promise.all(combineItemsCreatingTypeMapCall)
                         //     }
-
-                        //     const combineItem = await prisma.productOptionalItem.create({
-                        //         data: {
-                        //             title: item.title,
-                        //             productId: product.id,
-                        //             combineItem: {
-                        //                 create: {
-                        //                     primaryId: primaryItem.id,
-                        //                 }
-                        //             },
-                        //             optionalTypeItems: {
-                        //                 create: {
-                        //                     productOptionalTypeId: productOptionalType.id
-                        //                 }
-                        //             }
-                        //         }
-                        //     })
-
-                        //     console.log("208 asdnaskjdha ", combineItem)
-
-                        //     const a = await prisma.productOptionalItem.findFirst({
-                        //         where: {
-                        //             title: item.title,
-                        //             productId: product.id
-                        //         }
-                        //     })
-
-                        //     console.log("217 test ", a)
-                        //     return combineItem
+                        //     console.log(`252 combineItemsCreatingType/${type}/${item}}`, combineItemsCreatingType)
+                        //     combineItemsCreatingOrder = [...combineItemsCreatingOrder, combineItemsCreatingType]
+                        //     console.log(`254 combineItemsCreatingOrder/${type}/${item}}`, combineItemsCreatingOrder)
                         // }
-                        // )
-                        // const combineItems = await Promise.all(combineItemsCreating)
+                        // const combineItemsCreatingOrderCall = combineItemsCreatingOrder.length === req.body.types.length &&
+                        //     combineItemsCreatingOrder.reduce((fn, pmAll) => {
+                        //         console.log(`259 fn/${type}/${item}}`, fn)
+                        //         console.log(`260 pmAll/${type}/${item}}`, pmAll)
+                        //         console.log(`261 (typeof fn) === 'function'/${type}/${item}}`, (typeof fn) === 'function')
+                        //         return (typeof fn) === 'function' ? fn().then(() => pmAll()) : fn.then(() => pmAll())
+                        //     })
+                        // console.log(`263 combineItemsCreatingOrderCall/${type}/${item}} `, combineItemsCreatingOrderCall)
+                        //##################################################
+                        // #######################################
+
+                        comBineItemCreateFn(combineItemData, primaryItem.id)
 
                         const result = { primaryItem }
 
