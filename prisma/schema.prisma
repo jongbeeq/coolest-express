@@ -32,7 +32,7 @@ model Product {
   id                   Int                   @id @default(autoincrement())
   title                String                @unique
   description          String?               @db.VarChar(600)
-  balance              Int
+  balance              Int                   @default(0)
   minPrice             Int
   maxPrice             Int?
   categoryId           Int?
@@ -77,7 +77,7 @@ model ProductOptionalItem {
   id                Int                   @id @default(autoincrement())
   title             String
   price             Int?
-  balance           Int?
+  balance           Int?                  @default(0)
   productId         Int
   createdAt         DateTime              @default(now())
   updatedAt         DateTime?             @updatedAt
