@@ -18,18 +18,41 @@ exports.createProduct = async (req, res, next) => {
             })
         }
 
-        // let balance = 0
-        // for (let key in req.body) {
-        //     if (key.endsWith('balance')) {
-        //         balance = 
-        //     }
-        // }
+        let combineItemsData = {}
+
+        for (let key in req.body) {
+            // Create Combine-item Data
+            const combineItemsSplit = key.split('/combineItems')
+            const countCombineItem = combineItemsSplit[1]
+            if (countCombineItem) {
+                const combineItemNum = `combineItems${countCombineItem}`
+                const primaryItem = combineItemsSplit[0]
+                const combineItems = req.body[key]
+                const combineItemsArray = Array.isArray(combineItems) ? combineItems : [combineItems]
+                for (let item of combineItemsArray) {
+                    const numExist = (combineItemNum in combineItemsData)
+                    const itemExist = typeof combineItemsData[combineItemNum] === 'object' && (item in combineItemsData[combineItemNum])
+                    const combineItemExist = numExist && itemExist
+                    if (combineItemExist) {
+                        console.log('145 adasd ', combineItemsData)
+                        combineItemsData[combineItemNum][item].primaryId = [...combineItemsData[combineItemNum][item].primaryId, primaryItem]
+                    } else {
+                        combineItemsData[combineItemNum] = numExist ? { ...combineItemsData[combineItemNum] } : {}
+                        combineItemsData[combineItemNum][item] = { primaryId: [primaryItem] }
+                    }
+                }
+            }
+
+        }
+
+        console.log('1.1 combineItemsData-----', combineItemsData)
 
         const productData = {
             title: req.body.title,
             description: req.body.description,
             balance: +req.body.balance || 0,
             minPrice: +req.body.price,
+            maxPrice: +req.body.price,
         }
 
         let generalImages
@@ -103,13 +126,14 @@ exports.createProduct = async (req, res, next) => {
         for (let key in productTypesId) {
             const items = req.body[`${key}/items`]
             const itemsData = Array.isArray(items) ? items : [items]
-            let itemId = {}
+            // let itemId = {}
             const itemsPromise = itemsData.map((title) => {
                 const createItem = async () => {
                     const item = await prisma.productOptionalItem.create({
                         data: {
                             title: title,
                             productId: product.id,
+                            balance: +req.body[`${title}/balance`] || 0,
                             optionalTypeItems: {
                                 create: {
                                     productOptionalTypeId: productTypesId[key]
@@ -117,7 +141,7 @@ exports.createProduct = async (req, res, next) => {
                             }
                         }
                     })
-                    itemId = { ...itemId, [`${key}-${title}`]: item.id }
+                    const itemId = { [`${key}-${title}`]: item.id }
                     return itemId
                 }
                 return createItem()
@@ -132,43 +156,10 @@ exports.createProduct = async (req, res, next) => {
         console.log("2 productItemsId----", productItemsId)
 
         // 3.Create Combine-item
-        let combineItemsData = {}
-        let balanceItemsData = {}
-        for (let key in req.body) {
-            const combineItemsSplit = key.split('/combineItems')
-            const countCombineItem = combineItemsSplit[1]
-            if (countCombineItem) {
-                const combineItemNum = `combineItems${countCombineItem}`
-                const primaryItem = combineItemsSplit[0]
-                const combineItems = req.body[key]
-                const combineItemsArray = Array.isArray(combineItems) ? combineItems : [combineItems]
-                for (let item of combineItemsArray) {
-                    const primaryItemId = countCombineItem === "1" ? { primaryId: productItemsId[primaryItem] } : primaryItem
-                    const numExist = (combineItemNum in combineItemsData)
-                    const itemExist = typeof combineItemsData[combineItemNum] === 'object' && (item in combineItemsData[combineItemNum])
-                    const combineItemExist = numExist && itemExist
-                    if (combineItemExist) {
-                        combineItemsData[combineItemNum][item] = [...combineItemsData[combineItemNum][item], primaryItemId]
-                    } else {
-                        combineItemsData[combineItemNum] = numExist ? { ...combineItemsData[combineItemNum] } : {}
-                        combineItemsData[combineItemNum][item] = [primaryItemId]
-                    }
-                }
-            }
 
-            const balanceItem = key.split('/balance')
-            const isbalanceItem = balanceItem.length > 1
-            if (isbalanceItem) {
-                balanceItemsData[balanceItem[0]] = req.body[key]
-            }
-
-        }
-
-        console.log("2.1 balanceItemsData----", balanceItemsData)
-        console.log("3 combineItemsData----", combineItemsData)
-        console.log("3.1 combineItemsData/1----", combineItemsData.combineItems1)
-        console.log("3.2 combineItemsData/2----", combineItemsData.combineItems2)
-
+        // console.log("3 combineItemsData----", combineItemsData)
+        // console.log("3.1 combineItemsData/1----", combineItemsData.combineItems1)
+        // console.log("3.2 combineItemsData/2----", combineItemsData.combineItems2)
 
         const createCombineItem = async (combineItemsDataNum) => {
             let productCombineItemsPromise = []
@@ -177,15 +168,16 @@ exports.createProduct = async (req, res, next) => {
                     const combineItem = await prisma.productOptionalItem.create({
                         data: {
                             title: key,
+                            balance: +req.body[`${key}/balance`] || 0,
                             productId: product.id,
-                            // balance: 0,
                             combineItem: {
                                 createMany: {
-                                    data: combineItemsDataNum[key]
+                                    data: combineItemsDataNum[key].primaryId
                                 }
                             }
                         }
                     })
+
                     return { [key]: combineItem.id }
                 }
                 productCombineItemsPromise = [...productCombineItemsPromise, createCombineItems()]
@@ -204,39 +196,22 @@ exports.createProduct = async (req, res, next) => {
             const combineItemsField = key
             const combineItemsFieldData = combineItemsData[combineItemsField]
             const numCombineItem = combineItemsField.split('combineItems')[1]
-            if (numCombineItem > 1) {
-                for (let key in combineItemsFieldData) {
-                    console.log("5.1 combineItemsFieldData----", combineItemsFieldData)
-                    const combineItem = key
-                    const combineItemData = combineItemsFieldData[combineItem]
-                    console.log("5.2 combineItemData----", combineItemData)
-                    let combineItemDataWithPID = []
-                    console.log("5.3 nextPrimaryItemsIdData----", nextPrimaryItemsIdData)
-                    for (let item of combineItemData) {
-                        console.log("5.4 item in combineItemData----", item)
-                        const primaryItemId = { primaryId: nextPrimaryItemsIdData[item] }
-                        combineItemDataWithPID = [...combineItemDataWithPID, primaryItemId]
-                    }
-                    combineItemsFieldData[combineItem] = combineItemDataWithPID
+            for (let key in combineItemsFieldData) {
+                console.log("5.1 combineItemsFieldData----", combineItemsFieldData)
+                const combineItem = key
+                const combineItemData = combineItemsFieldData[combineItem]
+                console.log("5.2 combineItemData----", combineItemData)
+                let combineItemDataWithPID = []
+                console.log("5.3 nextPrimaryItemsIdData----", nextPrimaryItemsIdData)
+                for (let item of combineItemData.primaryId) {
+                    console.log("5.4 item in combineItemData----", item)
+                    const primaryItemId = { primaryId: numCombineItem > 1 ? nextPrimaryItemsIdData[item] : productItemsId[item] }
+                    combineItemDataWithPID = [...combineItemDataWithPID, primaryItemId]
                 }
+                combineItemsFieldData[combineItem].primaryId = combineItemDataWithPID
             }
-            console.log(`6 combineItemData ${combineItemsField} AFT----`, combineItemsData[combineItemsField])
-            nextPrimaryItemsIdData = await createCombineItem(combineItemsFieldData)
-        }
 
-        for (let key in balanceItemsData) {
-            const balanceItem = await prisma.productOptionalItem.updateMany({
-                where: {
-                    productId: product.id,
-                    title: key
-                },
-                data: {
-                    balance: {
-                        increment: +balanceItemsData[key]
-                    }
-                }
-            })
-            console.log('7 balanceItem----', balanceItem)
+            nextPrimaryItemsIdData = await createCombineItem(combineItemsFieldData)
         }
 
         const respond = { product }
