@@ -5,6 +5,7 @@ const prisma = require('../models/prisma')
 
 module.exports = async (req, res, next) => {
     try {
+        console.log(req.headers)
         const unauthenticateError = createError(errorUnAuthenticatedMessage, 401)
         const authorization = req.headers.authorization
 
@@ -41,7 +42,7 @@ module.exports = async (req, res, next) => {
         }
 
         delete user.password
-        req.user = user
+        req.account = user
         next()
     } catch (error) {
         next(createError(error))
