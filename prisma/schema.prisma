@@ -45,21 +45,20 @@ model Product {
 }
 
 model Category {
-  id               Int               @id @default(autoincrement())
-  title            String            @unique
+  title            String            @id
   createdAt        DateTime          @default(now())
   updatedAt        DateTime?         @updatedAt
   categoryProducts ProductCategory[] @relation("categoryProduct")
 }
 
 model ProductCategory {
-  id         Int       @id @default(autoincrement())
-  productId  Int
-  categoryId Int
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime? @updatedAt
-  product    Product   @relation("productCategory", fields: [productId], references: [id], onDelete: Cascade)
-  category   Category  @relation("categoryProduct", fields: [categoryId], references: [id], onDelete: Cascade)
+  id            Int       @id @default(autoincrement())
+  productId     Int
+  categoryTitle String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
+  product       Product   @relation("productCategory", fields: [productId], references: [id], onDelete: Cascade)
+  category      Category  @relation("categoryProduct", fields: [categoryTitle], references: [title], onDelete: Cascade)
 }
 
 model ProductOptionalType {

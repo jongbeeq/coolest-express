@@ -101,6 +101,14 @@ exports.createProduct = async (req, res, next) => {
             }
         }
 
+        if (req.body.category) {
+            const categoryData = genDBManyData(req.body.category, 'categoryTitle')
+            productData.productCategorys = {
+                createMany: {
+                    data: categoryData
+                }
+            }
+        }
 
         const product = await prisma.product.create({
             data: productData
@@ -225,6 +233,11 @@ exports.createProduct = async (req, res, next) => {
                 id: product.id
             },
             include: {
+                productCategorys: {
+                    select: {
+                        categoryTitle: true
+                    }
+                },
                 productOptionalTypes: {
                     select: {
                         id: true,
@@ -263,6 +276,7 @@ exports.createProduct = async (req, res, next) => {
         })
 
         getProduct.combineItems = getProduct.productOptionalItems
+        getProduct.productCategorys = getProduct.productCategorys.map((category) => category.categoryTitle)
         delete getProduct.productOptionalItems
         const respond = getProduct
         res.status(200).json(respond)
