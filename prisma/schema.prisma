@@ -58,8 +58,8 @@ model ProductCategory {
   categoryId Int
   createdAt  DateTime  @default(now())
   updatedAt  DateTime? @updatedAt
-  product    Product   @relation("productCategory", fields: [productId], references: [id])
-  category   Category  @relation("categoryProduct", fields: [categoryId], references: [id])
+  product    Product   @relation("productCategory", fields: [productId], references: [id], onDelete: Cascade)
+  category   Category  @relation("categoryProduct", fields: [categoryId], references: [id], onDelete: Cascade)
 }
 
 model ProductOptionalType {
@@ -68,7 +68,7 @@ model ProductOptionalType {
   productId         Int
   createdAt         DateTime           @default(now())
   updatedAt         DateTime?          @updatedAt
-  product           Product            @relation("productOptionalType", fields: [productId], references: [id])
+  product           Product            @relation("productOptionalType", fields: [productId], references: [id], onDelete: Cascade)
   optionalTypeItems OptionalTypeItem[] @relation("optionalTypeItem")
 }
 
@@ -80,7 +80,7 @@ model ProductOptionalItem {
   productId         Int
   createdAt         DateTime              @default(now())
   updatedAt         DateTime?             @updatedAt
-  product           Product               @relation("productOptionalItem", fields: [productId], references: [id])
+  product           Product               @relation("productOptionalItem", fields: [productId], references: [id], onDelete: Cascade)
   images            Image[]               @relation("optionItemImage")
   primaryItem       CombineOptionalItem[] @relation("primaryItem")
   combineItem       CombineOptionalItem[] @relation("combineItem")
@@ -93,8 +93,8 @@ model OptionalTypeItem {
   productOptionalTypeId Int
   createdAt             DateTime            @default(now())
   updatedAt             DateTime?           @updatedAt
-  productOptionalType   ProductOptionalType @relation("optionalTypeItem", fields: [productOptionalTypeId], references: [id])
-  productOptionalItem   ProductOptionalItem @relation("optionalItemType", fields: [productOptionalItemId], references: [id])
+  productOptionalType   ProductOptionalType @relation("optionalTypeItem", fields: [productOptionalTypeId], references: [id], onDelete: Cascade)
+  productOptionalItem   ProductOptionalItem @relation("optionalItemType", fields: [productOptionalItemId], references: [id], onDelete: Cascade)
 }
 
 model CombineOptionalItem {
@@ -103,8 +103,8 @@ model CombineOptionalItem {
   combineId   Int
   createdAt   DateTime            @default(now())
   updatedAt   DateTime?           @updatedAt
-  primaryItem ProductOptionalItem @relation("primaryItem", fields: [primaryId], references: [id])
-  combineItem ProductOptionalItem @relation("combineItem", fields: [combineId], references: [id])
+  primaryItem ProductOptionalItem @relation("primaryItem", fields: [primaryId], references: [id], onDelete: Cascade)
+  combineItem ProductOptionalItem @relation("combineItem", fields: [combineId], references: [id], onDelete: Cascade)
 }
 
 model Image {
@@ -115,14 +115,14 @@ model Image {
   createdAt             DateTime             @default(now())
   updatedAt             DateTime?            @updatedAt
   productOptionalItem   ProductOptionalItem? @relation("optionItemImage", fields: [productOptionalItemId], references: [id])
-  product               Product              @relation("productImage", fields: [productId], references: [id])
+  product               Product              @relation("productImage", fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model Cart {
   id             Int       @id @default(autoincrement())
   userId         String
   totalPrice     Int
-  user           User      @relation("cartOfUser", fields: [userId], references: [id])
+  user           User      @relation("cartOfUser", fields: [userId], references: [id], onDelete: Cascade)
   createPayment  DateTime?
   successPayment DateTime?
 }

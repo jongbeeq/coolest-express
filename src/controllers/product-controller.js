@@ -230,15 +230,12 @@ exports.createProduct = async (req, res, next) => {
                         id: true,
                         title: true,
                         productId: true,
-
-                    },
-                    include: {
                         optionalTypeItems: {
                             select: {
                                 productOptionalItem: true
                             }
                         }
-                    }
+                    },
                 },
                 productOptionalItems: {
                     where: {
