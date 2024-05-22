@@ -27,11 +27,11 @@ exports.registerUser = async (req, res, next) => {
 
         value.password = await bcrypt.hash(value.password, 12)
 
-        const user = await prisma.user.create({
+        const account = await prisma.user.create({
             data: { ...value }
         })
 
-        const payload = { id: user.id }
+        const payload = { id: account.id }
 
         const accessToken = jwt.sign(
             payload,
@@ -39,8 +39,8 @@ exports.registerUser = async (req, res, next) => {
             { expiresIn: process.env.JWT_EXPIRE }
         )
 
-        delete user.password
-        const respond = { accessToken, user }
+        delete account.password
+        const respond = { accessToken, account }
 
         res.status(200).json(respond)
     } catch (err) {
