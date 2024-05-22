@@ -19,7 +19,8 @@ exports.createProduct = async (req, res, next) => {
         }
 
         let combineItemsData = {}
-
+        let maxPrice = +req.body.price
+        let minPrice = +req.body.price
         for (let key in req.body) {
             // Create Combine-item Data
             const combineItemsSplit = key.split('/combineItems')
@@ -43,6 +44,12 @@ exports.createProduct = async (req, res, next) => {
                 }
             }
 
+            // Create Max/Min-price
+            const isPrice = key.endsWith('/price')
+            if (isPrice) {
+                maxPrice = +req.body[key] > maxPrice ? +req.body[key] : maxPrice
+                minPrice = +req.body[key] < minPrice ? +req.body[key] : minPrice
+            }
         }
 
         console.log('1.1 combineItemsData-----', combineItemsData)
@@ -51,8 +58,8 @@ exports.createProduct = async (req, res, next) => {
             title: req.body.title,
             description: req.body.description,
             balance: +req.body.balance || 0,
-            minPrice: +req.body.price,
-            maxPrice: +req.body.price,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
         }
 
         let generalImages
@@ -126,7 +133,6 @@ exports.createProduct = async (req, res, next) => {
         for (let key in productTypesId) {
             const items = req.body[`${key}/items`]
             const itemsData = Array.isArray(items) ? items : [items]
-            // let itemId = {}
             const itemsPromise = itemsData.map((title) => {
                 const createItem = async () => {
                     const item = await prisma.productOptionalItem.create({
@@ -134,13 +140,15 @@ exports.createProduct = async (req, res, next) => {
                             title: title,
                             productId: product.id,
                             balance: +req.body[`${title}/balance`] || 0,
+                            price: +req.body[`${title}/price`] || +req.body.price,
                             optionalTypeItems: {
                                 create: {
                                     productOptionalTypeId: productTypesId[key]
                                 }
-                            }
+                            },
                         }
                     })
+
                     const itemId = { [`${key}-${title}`]: item.id }
                     return itemId
                 }
@@ -156,11 +164,6 @@ exports.createProduct = async (req, res, next) => {
         console.log("2 productItemsId----", productItemsId)
 
         // 3.Create Combine-item
-
-        // console.log("3 combineItemsData----", combineItemsData)
-        // console.log("3.1 combineItemsData/1----", combineItemsData.combineItems1)
-        // console.log("3.2 combineItemsData/2----", combineItemsData.combineItems2)
-
         const createCombineItem = async (combineItemsDataNum) => {
             let productCombineItemsPromise = []
             for (let key in combineItemsDataNum) {
@@ -169,6 +172,7 @@ exports.createProduct = async (req, res, next) => {
                         data: {
                             title: key,
                             balance: +req.body[`${key}/balance`] || 0,
+                            price: +req.body[`${key}/price`] || +req.body.price,
                             productId: product.id,
                             combineItem: {
                                 createMany: {
@@ -214,7 +218,56 @@ exports.createProduct = async (req, res, next) => {
             nextPrimaryItemsIdData = await createCombineItem(combineItemsFieldData)
         }
 
-        const respond = { product }
+
+        // 4.Get Product
+        const getProduct = await prisma.product.findUnique({
+            where: {
+                id: product.id
+            },
+            include: {
+                productOptionalTypes: {
+                    select: {
+                        id: true,
+                        title: true,
+                        productId: true,
+
+                    },
+                    include: {
+                        optionalTypeItems: {
+                            select: {
+                                productOptionalItem: true
+                            }
+                        }
+                    }
+                },
+                productOptionalItems: {
+                    where: {
+                        combineItem: {
+                            some: {
+                                combineId: {
+                                    gte: 1
+                                }
+                            }
+                        }
+                    },
+                    select: {
+                        title: true,
+                        balance: true,
+                        price: true,
+                        combineItem: {
+                            select: {
+                                primaryId: true,
+                                combineId: true
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        getProduct.combineItems = getProduct.productOptionalItems
+        delete getProduct.productOptionalItems
+        const respond = getProduct
         res.status(200).json(respond)
     } catch (error) {
         console.log('error asdasads ', error)
