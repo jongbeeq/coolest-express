@@ -47,7 +47,6 @@ model Product {
 model Category {
   id               Int               @id @default(autoincrement())
   title            String            @unique
-  amountProduct    Int
   createdAt        DateTime          @default(now())
   updatedAt        DateTime?         @updatedAt
   categoryProducts ProductCategory[] @relation("categoryProduct")
