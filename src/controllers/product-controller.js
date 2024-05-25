@@ -92,7 +92,7 @@ exports.createProduct = async (req, res, next) => {
 
             console.log(objectFile)
 
-            generalImages = genDBManyData(objectFile.image, 'src')
+            generalImages = genDBManyData(objectFile.images, 'src')
 
             productData.images = {
                 createMany: {
